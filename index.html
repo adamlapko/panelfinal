@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Panel: czas • pogoda • timery • przełączniki • gwiazdki</title>
+  <meta name="theme-color" content="#ffffff">
+  <style>
+    :root{
+      --bg:#ffffff; --fg:#111111; --muted:#666666; --accent:#f59e0b;
+      --card:#ffffff; --border:#e5e7eb; --ok:#10b981; --warn:#ff184e; --reset:#9eb1c5;
+      --chip:#f3f4f6;
+    }
+    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+    html,body{height:100%}
+    body{margin:0; font:16px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); color:var(--fg)}
+    .wrap{display:grid; grid-template-columns:1fr; gap:12px; padding:12px; min-height:100dvh}
+
+    .card{background:var(--card); border-radius:14px; padding:16px; box-shadow:0 1px 0 var(--border), 0 6px 20px rgba(0,0,0,.06); border:1px solid var(--border)}
+
+    /* Zegar + pogoda */
+    #now{display:flex; flex-direction:column; gap:12px}
+    #clock{font-size:clamp(72px, 12vw, 132px); letter-spacing:1px; font-weight:300}
+    #weather{display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:1.05em; color:var(--muted)}
+    .chip{display:inline-flex; align-items:center; gap:10px; padding:8px 12px; background:var(--chip); border:1px solid var(--border); border-radius:999px}
+    .w-ic{font-size:22px}
+    #wdDate{white-space:nowrap}
+    #sep{opacity:.35}
+
+    /* Timer */
+    .timer{display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px}
+    .tface{font-size:42px; font-weight:700}
+    .tbtns{display:flex; gap:12px; flex-wrap:wrap}
+    button{
+      appearance:none; border:1px solid var(--border); border-radius:28px; padding:16px 20px;
+      background:#fafafa; color:#fff; font-weight:600; font-size:14px; cursor:pointer;
+      transition:filter .08s ease, transform .06s ease, box-shadow .12s ease, background .12s ease, opacity .12s ease, color .12s ease, border-color .12s ease;
+      box-shadow:0 6px 18px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.6) inset; /* mocniejsze cienie */
+      font-family:Inter,"Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
+      letter-spacing:.2px;
+    }
+    button:active{filter:brightness(.92); transform:translateY(1px)}
+    .start{background:var(--ok); border-color:#0ea372}
+    .stop{background:var(--warn); border-color:#dc1241}
+    .reset{background:var(--reset); border-color:#8ea0b3; color:#fff}
+    /* stan „wyszarzony” = 20% + SZARY kolor */
+    .dim{
+      opacity:.2 !important;
+      background:#e5e7eb !important;
+      border-color:#d1d5db !important;
+      color:#6b7280 !important;
+      box-shadow:0 2px 6px rgba(0,0,0,.10) !important;
+      filter:grayscale(1);
+    }
+    .tomato{font-size:28px}
+
+    /* Parowane timery: 30 i 15 */
+    .timers-pair{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    .timers-pair .col{display:grid; gap:10px; align-content:start}
+    .timers-pair .tbtns{justify-content:flex-start}
+    .timers-pair .tbtns button{padding:12px 16px; border-radius:24px; font-size:13px; box-shadow:0 5px 14px rgba(0,0,0,.10)}
+
+    /* Switche — kulka +1px dół, +1px prawo */
+    #switches{display:grid; grid-template-columns:1fr; gap:12px; transition:background .2s, border-color .2s}
+    .sw{display:flex; justify-content:space-between; align-items:center; padding:14px; background:#fafafa; border:1px solid var(--border); border-radius:12px; transition:background .2s, border-color .2s}
+    .sw-label{font-weight:500; letter-spacing:.2px; text-transform:uppercase}
+    .toggle2{position:relative; width:68px; height:38px; border-radius:999px; background:#e5e7eb; border:1px solid var(--border); display:inline-block; transition:.2s}
+    .toggle2.on{background:#d1fae5; border-color:#a7f3d0}
+    .toggle2 input{appearance:none; -webkit-appearance:none; width:100%; height:100%; margin:0; outline:none; position:absolute; inset:0; cursor:pointer; background:transparent; border:0}
+    .toggle2 .knob{position:absolute; top:2px; left:2px; width:32px; height:32px; background:#ffffff; border:1px solid var(--border); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.12); transition:.22s}
+    .toggle2.on .knob{left:32px; background:var(--ok); border-color:var(--ok)}
+
+    /* CAŁA SEKCJA switchy zielona, gdy wszystkie ON */
+    #switches.all-on{background:#d1fae5; border-color:#a7f3d0}
+    #switches.all-on .sw{background:#ecfdf5; border-color:#a7f3d0}
+    #switches.all-on .sw-label{color:#065f46}
+    #switches.all-on .toggle2{background:#bbf7d0; border-color:#86efac}
+    #switches.all-on .toggle2 .knob{border-color:#86efac}
+    #switches.all-on .toggle2.on .knob{background:#10b981; border-color:#10b981}
+
+    /* Gwiazdki (minimalnie większe) */
+    #stars{display:flex; flex-wrap:wrap; gap:8px}
+    .star{font-size:30px; filter:grayscale(1) opacity(.6); cursor:pointer; transition:transform .06s ease, filter .06s ease}
+    .star.on{filter:none; color:var(--accent)}
+    .star:active{transform:scale(0.94)}
+
+    /* Celebracja (konfetti) */
+    #celebration{position:fixed; inset:0; pointer-events:none; overflow:hidden}
+    .conf{position:absolute; font-size:18px; will-change:transform,opacity; animation:fall var(--dur) linear forwards}
+    @keyframes fall{
+      0%{transform:translate3d(var(--x),-10%,0) rotate(0deg) scale(1); opacity:1}
+      100%{transform:translate3d(var(--x2),110%,0) rotate(var(--rot)) scale(1.1); opacity:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Zegar + ramka z datą+dniem i pogodą -->
+    <section id="now" class="card" aria-label="Zegar, data i pogoda">
+      <div id="clock" aria-live="polite">--:--:--</div>
+      <div id="weather">
+        <div class="chip" id="wChip" role="button" tabindex="0" aria-label="Odśwież datę i pogodę">
+          <span id="wdDate"></span><span id="sep">•</span>
+          <span class="w-ic" id="wIcon">⌛</span><span id="wText">Ładowanie…</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pomodoro 50 -->
+    <section class="card timer" aria-label="Timer 50 minut">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="tomato" aria-hidden="true">🍅</span>
+        <span id="tFace50" class="tface">50:00</span>
+      </div>
+      <div class="tbtns">
+        <button id="btnStart50" class="start">START</button>
+        <button id="btnStop50" class="stop">STOP</button>
+        <button id="btnReset50" class="reset">RESET</button>
+      </div>
+    </section>
+
+    <!-- Switche -->
+    <section id="switches" class="card" aria-label="Przełączniki">
+      <div class="sw"><span class="sw-label">Dieta</span><label class="toggle2"><input type="checkbox" id="swA" data-key="swA"><span class="knob"></span></label></div>
+      <div class="sw"><span class="sw-label">Kreatyna</span><label class="toggle2"><input type="checkbox" id="swB" data-key="swB"><span class="knob"></span></label></div>
+      <div class="sw"><span class="sw-label">Spanko</span><label class="toggle2"><input type="checkbox" id="swC" data-key="swC"><span class="knob"></span></label></div>
+      <div class="sw"><span class="sw-label">Ruch</span><label class="toggle2"><input type="checkbox" id="swD" data-key="swD"><span class="knob"></span></label></div>
+      <div class="sw"><span class="sw-label">Suplementy</span><label class="toggle2"><input type="checkbox" id="swE" data-key="swE"><span class="knob"></span></label></div>
+    </section>
+
+    <!-- Gwiazdki (14 szt.) -->
+    <section id="starsCard" class="card" aria-label="Gwiazdki">
+      <div id="stars"></div>
+    </section>
+
+    <!-- Para: 30 i 15 -->
+    <section class="card timers-pair" aria-label="Timery 30 i 15 minut">
+      <div class="col">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="tomato" aria-hidden="true">🍅</span>
+          <span id="tFace30" class="tface">30:00</span>
+        </div>
+        <div class="tbtns">
+          <button id="btnStart30" class="start">START</button>
+          <button id="btnStop30" class="stop">STOP</button>
+          <button id="btnReset30" class="reset">RESET</button>
+        </div>
+      </div>
+      <div class="col">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="tomato" aria-hidden="true">🍅</span>
+          <span id="tFace15" class="tface">15:00</span>
+        </div>
+        <div class="tbtns" style="margin-top:auto;">
+          <button id="btnStart15" class="start">START</button>
+          <button id="btnStop15" class="stop">STOP</button>
+          <button id="btnReset15" class="reset">RESET</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- warstwa konfetti -->
+  <div id="celebration" aria-hidden="true"></div>
+
+  <script>
+    /* ===== UTIL & AUDIO ===== */
+    const z = (n)=> String(n).padStart(2,'0');
+    let ACtx = null;
+    const getCtx = () => (ACtx ||= new (window.AudioContext||window.webkitAudioContext)());
+
+    function sndStart(){
+      try{
+        const ctx=getCtx(), t=ctx.currentTime;
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='triangle'; o.frequency.setValueAtTime(520, t);
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.5, t+0.06);
+        o.frequency.exponentialRampToValueAtTime(740, t+0.18);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+        o.start(t); o.stop(t+0.25);
+      }catch(e){}
+    }
+    function sndStop(){
+      try{
+        const ctx=getCtx(), t=ctx.currentTime;
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='square'; o.frequency.setValueAtTime(700, t);
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.45, t+0.04);
+        o.frequency.exponentialRampToValueAtTime(380, t+0.22);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.26);
+        o.start(t); o.stop(t+0.3);
+      }catch(e){}
+    }
+    function sndReset(){
+      try{
+        const ctx=getCtx(), t=ctx.currentTime;
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='sine'; o.frequency.setValueAtTime(600, t);
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.35, t+0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.18);
+        o.start(t); o.stop(t+0.22);
+      }catch(e){}
+    }
+    // klik gwiazdki – krótki „tik”
+    function starClickSound(){
+      try{
+        const ctx=getCtx(), t=ctx.currentTime;
+        const o=ctx.createOscillator(), g=ctx.createGain();
+        o.type='triangle'; o.frequency.setValueAtTime(880, t);
+        o.connect(g); g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.35, t+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+        o.start(t); o.stop(t+0.14);
+      }catch(e){}
+    }
+
+    // dłuższy dźwięk końca (akord x3)
+    function endChord(dur=1.8){
+      try{
+        const ctx=getCtx(); const master=ctx.createGain(); master.gain.value=0.6; master.connect(ctx.destination);
+        const notes=[440,554.37,659.25]; const t=ctx.currentTime;
+        notes.forEach((f,i)=>{ const o=ctx.createOscillator(), g=ctx.createGain();
+          o.type='sine'; o.frequency.setValueAtTime(f, t); o.connect(g); g.connect(master);
+          const start=t+i*0.02; g.gain.setValueAtTime(0.0001, start);
+          g.gain.exponentialRampToValueAtTime(0.6, start+0.08);
+          o.frequency.exponentialRampToValueAtTime(f*1.12, start+dur);
+          g.gain.exponentialRampToValueAtTime(0.0001, start+dur);
+          o.start(start); o.stop(start+dur+0.05);
+        });
+      }catch(e){}
+    }
+    function endChordThrice(){
+      endChord(1.8);
+      setTimeout(()=>endChord(1.8), 650);
+      setTimeout(()=>endChord(1.8), 1300);
+    }
+
+    /* prosta celebracja – konfetti emoji */
+    const CE_EMO = ['★','✦','✧','❇','❖','⬤','◆','🍅','✺'];
+    function celebrate(){
+      const lay = document.getElementById('celebration');
+      for(let i=0;i<60;i++){
+        const s = document.createElement('span');
+        s.className='conf';
+        s.textContent = CE_EMO[Math.floor(Math.random()*CE_EMO.length)];
+        const x = Math.random()*100, x2 = x + (Math.random()*20-10);
+        const rot = (Math.random()*720-360)+'deg';
+        const dur = (1.6+Math.random()*0.9)+'s';
+        s.style.left = x+'%';
+        s.style.setProperty('--x', '0%');
+        s.style.setProperty('--x2', (x2-x)+'%');
+        s.style.setProperty('--rot', rot);
+        s.style.setProperty('--dur', dur);
+        s.style.top='-10%';
+        lay.appendChild(s);
+        setTimeout(()=> s.remove(), 2200);
+      }
+    }
+
+    /* ===== ZEGAR + DATA ===== */
+    const dni = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+    function tickClock(){
+      const d=new Date();
+      document.getElementById('clock').textContent = `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
+      const dayStr = dni[d.getDay()];
+      const dateStr = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'long'}); // bez roku
+      document.getElementById('wdDate').textContent = `${dayStr} • 📅 ${dateStr}`;
+    }
+    setInterval(tickClock, 250); tickClock();
+
+    /* ===== POGODA (Gliwice, Open-Meteo) ===== */
+    const WMAP = {
+      0:["☀️","Bezchmurnie"], 1:["🌤️","Prawie bezchmurnie"], 2:["⛅","Częściowo pochmurnie"], 3:["☁️","Pochmurno"],
+      45:["🌫️","Mgła"], 48:["🌫️","Mgła osadzająca się"], 51:["🌦️","Mżawka lekka"], 53:["🌦️","Mżawka"], 55:["🌧️","Mżawka intensywna"],
+      61:["🌦️","Deszcz lekki"], 63:["🌧️","Deszcz"], 65:["🌧️","Ulewa"], 66:["🌧️","Marznący deszcz lekki"], 67:["🌧️","Marznący deszcz"],
+      71:["🌨️","Śnieg lekki"], 73:["🌨️","Śnieg"], 75:["❄️","Intensywny śnieg"], 77:["❄️","Grad śnieżny"],
+      80:["🌦️","Przelotny deszcz lekki"], 81:["🌧️","Przelotny deszcz"], 82:["🌧️","Ulewy przelotne"],
+      85:["🌨️","Przelotny śnieg"], 86:["🌨️","Śnieżyca"], 95:["⛈️","Burza"], 96:["⛈️","Burza z gradem"], 97:["⛈️","Silna burza"]
+    };
+    async function loadWeather(){
+      const lat=50.294, lon=18.671;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`;
+      const wIcon=document.getElementById('wIcon');
+      const wText=document.getElementById('wText');
+      try{
+        const r=await fetch(url, {cache:'no-store'}); if(!r.ok) throw new Error(r.status);
+        const j=await r.json();
+        const t=Math.round(j.current.temperature_2m);
+        const code=j.current.weather_code;
+        const [ic,desc]=WMAP[code]||["🌡️","Pogoda"];
+        wIcon.textContent=ic;
+        wText.textContent=`Gliwice: ${t}°C • ${desc}`;
+      }catch(e){
+        wIcon.textContent="⚠️";
+        wText.textContent="Brak internetu lub błąd API. Kliknij, aby spróbować ponownie.";
+      }
+    }
+    loadWeather();
+    document.getElementById('wChip').addEventListener('click', ()=>{
+      document.getElementById('wText').textContent="Ładowanie…";
+      loadWeather();
+    });
+
+    /* ===== TIMER KLASA ===== */
+    class Pomodoro {
+      constructor(totalSec, faceId, startId, stopId, resetId, storageKey){
+        this.tTotal=totalSec;
+        this.tLeft=totalSec;
+        this.running=false;
+        this.lastTick=0;
+        this.raf=null;
+        this.face=document.getElementById(faceId);
+        this.k=storageKey;
+
+        this.bStart=document.getElementById(startId);
+        this.bStop=document.getElementById(stopId);
+        this.bReset=document.getElementById(resetId);
+
+        this.bStart.onclick=()=>{ this.start(); sndStart(); };
+        this.bStop.onclick=()=>{ this.stop(); sndStop(); };
+        this.bReset.onclick=()=>{ this.reset(); sndReset(); };
+
+        this.restore(); this.render(); this.updateButtons();
+      }
+      updateButtons(){
+        if(this.running){
+          this.bStart.classList.add('dim');
+          this.bStop.classList.remove('dim');
+        }else{
+          this.bStart.classList.remove('dim');
+          this.bStop.classList.add('dim');
+        }
+      }
+      render(){ const m=Math.floor(this.tLeft/60), s=this.tLeft%60; this.face.textContent=`${z(m)}:${z(s)}`; }
+      step=()=>{
+        const now=Date.now();
+        const dt=Math.floor((now-this.lastTick)/1000);
+        if(dt>=1){
+          this.tLeft=Math.max(0, this.tLeft-dt);
+          this.lastTick=now; this.render();
+          if(this.tLeft===0){
+            this.stop();
+            endChordThrice();
+            celebrate();
+          }
+        }
+        if(this.running) this.raf=requestAnimationFrame(this.step);
+      }
+      start(){
+        if(this.running || this.tLeft<=0) { if(this.tLeft<=0) { this.reset(); } else return; }
+        this.running=true; this.lastTick=Date.now(); this.save(); this.updateButtons(); this.raf=requestAnimationFrame(this.step);
+      }
+      stop(){ this.running=false; if(this.raf) cancelAnimationFrame(this.raf); this.save(); this.updateButtons(); }
+      reset(){ this.tLeft=this.tTotal; this.render(); this.stop(); this.save(); }
+      save(){ localStorage.setItem(this.k, JSON.stringify({tLeft:this.tLeft, running:this.running, ts: Date.now()})); }
+      restore(){
+        try{
+          const raw=localStorage.getItem(this.k); if(!raw) return;
+          const {tLeft, running, ts}=JSON.parse(raw);
+          const passed=Math.floor((Date.now()-ts)/1000);
+          this.tLeft=Math.max(0, (tLeft??this.tTotal)-(running?passed:0));
+          if(running && this.tLeft>0) this.start(); else this.render();
+        }catch(e){}
+      }
+    }
+
+    const T50 = new Pomodoro(50*60, 'tFace50', 'btnStart50','btnStop50','btnReset50','timer50_state');
+    const T30 = new Pomodoro(30*60, 'tFace30', 'btnStart30','btnStop30','btnReset30','timer30_state');
+    const T15 = new Pomodoro(15*60,  'tFace15', 'btnStart15','btnStop15','btnReset15','timer15_state');
+
+    /* ===== SWITCHE — stan i zapis + „all on” kolor sekcji ===== */
+    const switchesCard = document.getElementById('switches');
+    function updateAllOnClass(){
+      const inputs=[...document.querySelectorAll('#switches input[type="checkbox"]')];
+      const allOn = inputs.every(i=>i.checked);
+      switchesCard.classList.toggle('all-on', allOn);
+    }
+    document.querySelectorAll('#switches input[type="checkbox"]').forEach(inp=>{
+      const key=inp.dataset.key;
+      const saved = localStorage.getItem('toggle_'+key)==='1';
+      inp.checked = saved;
+      const lab = inp.closest('.toggle2');
+      lab.classList.toggle('on', inp.checked);
+      inp.addEventListener('change', ()=>{
+        localStorage.setItem('toggle_'+key, inp.checked?'1':'0');
+        lab.classList.toggle('on', inp.checked);
+        updateAllOnClass();
+      });
+    });
+    updateAllOnClass();
+
+    /* ===== GWIAZDKI (14) ===== */
+    const starsWrap=document.getElementById('stars');
+    const STAR_KEY='stars14_state';
+    function drawStars(){
+      starsWrap.innerHTML='';
+      const state=(localStorage.getItem(STAR_KEY)||'').split('').map(x=>x==='1');
+      for(let i=0;i<14;i++){
+        const s=document.createElement('span');
+        s.className='star'+(state[i]?' on':''); s.textContent='★';
+        s.onclick=()=>{ s.classList.toggle('on'); starClickSound(); saveStars(); };
+        s.setAttribute('role','checkbox');
+        s.setAttribute('aria-checked', state[i]?'true':'false');
+        starsWrap.appendChild(s);
+      }
+    }
+    function saveStars(){
+      const bits=[...document.querySelectorAll('.star')].map(s=>{
+        const on=s.classList.contains('on');
+        s.setAttribute('aria-checked', on?'true':'false');
+        return on?'1':'0';
+      }).join('');
+      localStorage.setItem(STAR_KEY, bits);
+    }
+    drawStars();
+  </script>
+</body>
+</html>
