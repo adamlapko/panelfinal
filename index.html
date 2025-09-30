@@ -4,19 +4,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Panel: czas • pogoda • timery • przełączniki • gwiazdki</title>
-  <meta name="theme-color" content="#ffffff">
+
+  <!-- Theme color dla obu schematów -->
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)"  content="#0b0f14">
+
   <style>
+    /* ===== LIGHT ===== */
     :root{
-      --bg:#ffffff; --fg:#111111; --muted:#666666; --accent:#f59e0b;
+      --bg:#ffffff; --fg:#111111; --muted:#69707a; --accent:#f59e0b;
       --card:#ffffff; --border:#e5e7eb; --ok:#10b981; --warn:#ff184e; --reset:#9eb1c5;
-      --chip:#f3f4f6;
+      --chip:#f8fafc; --btn:#fafafa; --dimBg:#e5e7eb; --dimFg:#6b7280; --toggleOff:#e5e7eb;
+      --toggleOnBg:#d1fae5; --toggleOnBorder:#a7f3d0; --knob:#ffffff;
+      --shadow-a:0 1px 0 var(--border), 0 6px 20px rgba(0,0,0,.06);
+      --shadow-btn:0 6px 18px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.6) inset;
     }
+    /* ===== DARK ===== */
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#0b0f14; --fg:#e5e7eb; --muted:#9aa4b2; --accent:#f59e0b;
+        --card:#10151d; --border:#1f2a37; --ok:#10b981; --warn:#ff184e; --reset:#7a8a9a;
+        --chip:#0f1720; --btn:#111827; --dimBg:#0f1720; --dimFg:#94a3b8; --toggleOff:#111827;
+        --toggleOnBg:#064e3b; --toggleOnBorder:#0f766e; --knob:#0b1220;
+        --shadow-a:0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.45);
+        --shadow-btn:0 6px 18px rgba(0,0,0,.6), 0 1px 0 rgba(255,255,255,.05) inset;
+      }
+    }
+
     *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
     html,body{height:100%}
     body{margin:0; font:16px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:var(--bg); color:var(--fg)}
     .wrap{display:grid; grid-template-columns:1fr; gap:12px; padding:12px; min-height:100dvh}
 
-    .card{background:var(--card); border-radius:14px; padding:16px; box-shadow:0 1px 0 var(--border), 0 6px 20px rgba(0,0,0,.06); border:1px solid var(--border)}
+    .card{background:var(--card); border-radius:14px; padding:16px; box-shadow:var(--shadow-a); border:1px solid var(--border)}
 
     /* Zegar + pogoda */
     #now{display:flex; flex-direction:column; gap:12px}
@@ -33,22 +53,23 @@
     .tbtns{display:flex; gap:12px; flex-wrap:wrap}
     button{
       appearance:none; border:1px solid var(--border); border-radius:28px; padding:16px 20px;
-      background:#fafafa; color:#fff; font-weight:600; font-size:14px; cursor:pointer;
+      background:var(--btn); color:#fff; font-weight:600; font-size:14px; cursor:pointer;
       transition:filter .08s ease, transform .06s ease, box-shadow .12s ease, background .12s ease, opacity .12s ease, color .12s ease, border-color .12s ease;
-      box-shadow:0 6px 18px rgba(0,0,0,.12), 0 1px 0 rgba(255,255,255,.6) inset; /* mocniejsze cienie */
+      box-shadow:var(--shadow-btn);
       font-family:Inter,"Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
       letter-spacing:.2px;
     }
     button:active{filter:brightness(.92); transform:translateY(1px)}
     .start{background:var(--ok); border-color:#0ea372}
     .stop{background:var(--warn); border-color:#dc1241}
-    .reset{background:var(--reset); border-color:#8ea0b3; color:#fff}
+    .reset{background:var(--reset); border-color:color-mix(in oklab, var(--reset) 85%, black); color:#fff}
+
     /* stan „wyszarzony” = 20% + SZARY kolor */
     .dim{
       opacity:.2 !important;
-      background:#e5e7eb !important;
-      border-color:#d1d5db !important;
-      color:#6b7280 !important;
+      background:var(--dimBg) !important;
+      border-color:var(--border) !important;
+      color:var(--dimFg) !important;
       box-shadow:0 2px 6px rgba(0,0,0,.10) !important;
       filter:grayscale(1);
     }
@@ -58,29 +79,29 @@
     .timers-pair{display:grid; grid-template-columns:1fr 1fr; gap:12px}
     .timers-pair .col{display:grid; gap:10px; align-content:start}
     .timers-pair .tbtns{justify-content:flex-start}
-    .timers-pair .tbtns button{padding:12px 16px; border-radius:24px; font-size:13px; box-shadow:0 5px 14px rgba(0,0,0,.10)}
+    .timers-pair .tbtns button{padding:12px 16px; border-radius:24px; font-size:13px; box-shadow:var(--shadow-btn)}
 
-    /* Switche — kulka +1px dół, +1px prawo */
+    /* Switche */
     #switches{display:grid; grid-template-columns:1fr; gap:12px; transition:background .2s, border-color .2s}
-    .sw{display:flex; justify-content:space-between; align-items:center; padding:14px; background:#fafafa; border:1px solid var(--border); border-radius:12px; transition:background .2s, border-color .2s}
+    .sw{display:flex; justify-content:space-between; align-items:center; padding:14px; background:var(--chip); border:1px solid var(--border); border-radius:12px; transition:background .2s, border-color .2s}
     .sw-label{font-weight:500; letter-spacing:.2px; text-transform:uppercase}
-    .toggle2{position:relative; width:68px; height:38px; border-radius:999px; background:#e5e7eb; border:1px solid var(--border); display:inline-block; transition:.2s}
-    .toggle2.on{background:#d1fae5; border-color:#a7f3d0}
+    .toggle2{position:relative; width:68px; height:38px; border-radius:999px; background:var(--toggleOff); border:1px solid var(--border); display:inline-block; transition:.2s}
+    .toggle2.on{background:var(--toggleOnBg); border-color:var(--toggleOnBorder)}
     .toggle2 input{appearance:none; -webkit-appearance:none; width:100%; height:100%; margin:0; outline:none; position:absolute; inset:0; cursor:pointer; background:transparent; border:0}
-    .toggle2 .knob{position:absolute; top:2px; left:2px; width:32px; height:32px; background:#ffffff; border:1px solid var(--border); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.12); transition:.22s}
+    .toggle2 .knob{position:absolute; top:2px; left:2px; width:32px; height:32px; background:var(--knob); border:1px solid var(--border); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.28); transition:.22s}
     .toggle2.on .knob{left:32px; background:var(--ok); border-color:var(--ok)}
 
-    /* CAŁA SEKCJA switchy zielona, gdy wszystkie ON */
-    #switches.all-on{background:#d1fae5; border-color:#a7f3d0}
-    #switches.all-on .sw{background:#ecfdf5; border-color:#a7f3d0}
+    /* Sekcja switchy na zielono, gdy wszystkie ON */
+    #switches.all-on{background:color-mix(in oklab, var(--ok) 15%, transparent); border-color:var(--toggleOnBorder)}
+    #switches.all-on .sw{background:color-mix(in oklab, var(--ok) 10%, var(--chip)); border-color:var(--toggleOnBorder)}
     #switches.all-on .sw-label{color:#065f46}
-    #switches.all-on .toggle2{background:#bbf7d0; border-color:#86efac}
-    #switches.all-on .toggle2 .knob{border-color:#86efac}
+    #switches.all-on .toggle2{background:color-mix(in oklab, var(--ok) 25%, var(--toggleOff)); border-color:var(--toggleOnBorder)}
+    #switches.all-on .toggle2 .knob{border-color:var(--toggleOnBorder)}
     #switches.all-on .toggle2.on .knob{background:#10b981; border-color:#10b981}
 
-    /* Gwiazdki (minimalnie większe) */
+    /* Gwiazdki */
     #stars{display:flex; flex-wrap:wrap; gap:8px}
-    .star{font-size:30px; filter:grayscale(1) opacity(.6); cursor:pointer; transition:transform .06s ease, filter .06s ease}
+    .star{font-size:30px; filter:grayscale(1) opacity(.6); cursor:pointer; transition:transform .06s ease, filter .06s ease, color .06s ease}
     .star.on{filter:none; color:var(--accent)}
     .star:active{transform:scale(0.94)}
 
@@ -169,59 +190,37 @@
     let ACtx = null;
     const getCtx = () => (ACtx ||= new (window.AudioContext||window.webkitAudioContext)());
 
-    function sndStart(){
-      try{
-        const ctx=getCtx(), t=ctx.currentTime;
-        const o=ctx.createOscillator(), g=ctx.createGain();
-        o.type='triangle'; o.frequency.setValueAtTime(520, t);
-        o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.5, t+0.06);
-        o.frequency.exponentialRampToValueAtTime(740, t+0.18);
-        g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
-        o.start(t); o.stop(t+0.25);
-      }catch(e){}
-    }
-    function sndStop(){
-      try{
-        const ctx=getCtx(), t=ctx.currentTime;
-        const o=ctx.createOscillator(), g=ctx.createGain();
-        o.type='square'; o.frequency.setValueAtTime(700, t);
-        o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.45, t+0.04);
-        o.frequency.exponentialRampToValueAtTime(380, t+0.22);
-        g.gain.exponentialRampToValueAtTime(0.0001, t+0.26);
-        o.start(t); o.stop(t+0.3);
-      }catch(e){}
-    }
-    function sndReset(){
-      try{
-        const ctx=getCtx(), t=ctx.currentTime;
-        const o=ctx.createOscillator(), g=ctx.createGain();
-        o.type='sine'; o.frequency.setValueAtTime(600, t);
-        o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.35, t+0.03);
-        g.gain.exponentialRampToValueAtTime(0.0001, t+0.18);
-        o.start(t); o.stop(t+0.22);
-      }catch(e){}
-    }
-    // klik gwiazdki – krótki „tik”
-    function starClickSound(){
-      try{
-        const ctx=getCtx(), t=ctx.currentTime;
-        const o=ctx.createOscillator(), g=ctx.createGain();
-        o.type='triangle'; o.frequency.setValueAtTime(880, t);
-        o.connect(g); g.connect(ctx.destination);
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.35, t+0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
-        o.start(t); o.stop(t+0.14);
-      }catch(e){}
-    }
+    function sndStart(){try{const ctx=getCtx(), t=ctx.currentTime; const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.setValueAtTime(520, t);
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.5, t+0.06);
+      o.frequency.exponentialRampToValueAtTime(740, t+0.18);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.22);
+      o.start(t); o.stop(t+0.25);}catch(e){}}
+    function sndStop(){try{const ctx=getCtx(), t=ctx.currentTime; const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='square'; o.frequency.setValueAtTime(700, t);
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.45, t+0.04);
+      o.frequency.exponentialRampToValueAtTime(380, t+0.22);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.26);
+      o.start(t); o.stop(t+0.3);}catch(e){}}
+    function sndReset(){try{const ctx=getCtx(), t=ctx.currentTime; const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='sine'; o.frequency.setValueAtTime(600, t);
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.18);
+      o.start(t); o.stop(t+0.22);}catch(e){}}
+    function starClickSound(){try{const ctx=getCtx(), t=ctx.currentTime; const o=ctx.createOscillator(), g=ctx.createGain();
+      o.type='triangle'; o.frequency.setValueAtTime(880, t);
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.35, t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+      o.start(t); o.stop(t+0.14);}catch(e){}}
 
-    // dłuższy dźwięk końca (akord x3)
     function endChord(dur=1.8){
       try{
         const ctx=getCtx(); const master=ctx.createGain(); master.gain.value=0.6; master.connect(ctx.destination);
@@ -236,13 +235,9 @@
         });
       }catch(e){}
     }
-    function endChordThrice(){
-      endChord(1.8);
-      setTimeout(()=>endChord(1.8), 650);
-      setTimeout(()=>endChord(1.8), 1300);
-    }
+    function endChordThrice(){ endChord(1.8); setTimeout(()=>endChord(1.8), 650); setTimeout(()=>endChord(1.8), 1300); }
 
-    /* prosta celebracja – konfetti emoji */
+    /* Konfetti */
     const CE_EMO = ['★','✦','✧','❇','❖','⬤','◆','🍅','✺'];
     function celebrate(){
       const lay = document.getElementById('celebration');
@@ -264,18 +259,18 @@
       }
     }
 
-    /* ===== ZEGAR + DATA ===== */
+    /* Zegar + data */
     const dni = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
     function tickClock(){
       const d=new Date();
       document.getElementById('clock').textContent = `${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`;
       const dayStr = dni[d.getDay()];
-      const dateStr = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'long'}); // bez roku
+      const dateStr = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'long'});
       document.getElementById('wdDate').textContent = `${dayStr} • 📅 ${dateStr}`;
     }
     setInterval(tickClock, 250); tickClock();
 
-    /* ===== POGODA (Gliwice, Open-Meteo) ===== */
+    /* Pogoda (Gliwice, Open-Meteo) */
     const WMAP = {
       0:["☀️","Bezchmurnie"], 1:["🌤️","Prawie bezchmurnie"], 2:["⛅","Częściowo pochmurnie"], 3:["☁️","Pochmurno"],
       45:["🌫️","Mgła"], 48:["🌫️","Mgła osadzająca się"], 51:["🌦️","Mżawka lekka"], 53:["🌦️","Mżawka"], 55:["🌧️","Mżawka intensywna"],
@@ -308,35 +303,20 @@
       loadWeather();
     });
 
-    /* ===== TIMER KLASA ===== */
+    /* Timer klasa */
     class Pomodoro {
       constructor(totalSec, faceId, startId, stopId, resetId, storageKey){
-        this.tTotal=totalSec;
-        this.tLeft=totalSec;
-        this.running=false;
-        this.lastTick=0;
-        this.raf=null;
-        this.face=document.getElementById(faceId);
-        this.k=storageKey;
-
-        this.bStart=document.getElementById(startId);
-        this.bStop=document.getElementById(stopId);
-        this.bReset=document.getElementById(resetId);
-
+        this.tTotal=totalSec; this.tLeft=totalSec; this.running=false; this.lastTick=0; this.raf=null;
+        this.face=document.getElementById(faceId); this.k=storageKey;
+        this.bStart=document.getElementById(startId); this.bStop=document.getElementById(stopId); this.bReset=document.getElementById(resetId);
         this.bStart.onclick=()=>{ this.start(); sndStart(); };
         this.bStop.onclick=()=>{ this.stop(); sndStop(); };
         this.bReset.onclick=()=>{ this.reset(); sndReset(); };
-
         this.restore(); this.render(); this.updateButtons();
       }
       updateButtons(){
-        if(this.running){
-          this.bStart.classList.add('dim');
-          this.bStop.classList.remove('dim');
-        }else{
-          this.bStart.classList.remove('dim');
-          this.bStop.classList.add('dim');
-        }
+        if(this.running){ this.bStart.classList.add('dim'); this.bStop.classList.remove('dim'); }
+        else{ this.bStart.classList.remove('dim'); this.bStop.classList.add('dim'); }
       }
       render(){ const m=Math.floor(this.tLeft/60), s=this.tLeft%60; this.face.textContent=`${z(m)}:${z(s)}`; }
       step=()=>{
@@ -345,18 +325,12 @@
         if(dt>=1){
           this.tLeft=Math.max(0, this.tLeft-dt);
           this.lastTick=now; this.render();
-          if(this.tLeft===0){
-            this.stop();
-            endChordThrice();
-            celebrate();
-          }
+          if(this.tLeft===0){ this.stop(); endChordThrice(); celebrate(); }
         }
         if(this.running) this.raf=requestAnimationFrame(this.step);
       }
-      start(){
-        if(this.running || this.tLeft<=0) { if(this.tLeft<=0) { this.reset(); } else return; }
-        this.running=true; this.lastTick=Date.now(); this.save(); this.updateButtons(); this.raf=requestAnimationFrame(this.step);
-      }
+      start(){ if(this.running || this.tLeft<=0){ if(this.tLeft<=0) this.reset(); else return; }
+        this.running=true; this.lastTick=Date.now(); this.save(); this.updateButtons(); this.raf=requestAnimationFrame(this.step); }
       stop(){ this.running=false; if(this.raf) cancelAnimationFrame(this.raf); this.save(); this.updateButtons(); }
       reset(){ this.tLeft=this.tTotal; this.render(); this.stop(); this.save(); }
       save(){ localStorage.setItem(this.k, JSON.stringify({tLeft:this.tLeft, running:this.running, ts: Date.now()})); }
@@ -375,7 +349,7 @@
     const T30 = new Pomodoro(30*60, 'tFace30', 'btnStart30','btnStop30','btnReset30','timer30_state');
     const T15 = new Pomodoro(15*60,  'tFace15', 'btnStart15','btnStop15','btnReset15','timer15_state');
 
-    /* ===== SWITCHE — stan i zapis + „all on” kolor sekcji ===== */
+    /* Switche */
     const switchesCard = document.getElementById('switches');
     function updateAllOnClass(){
       const inputs=[...document.querySelectorAll('#switches input[type="checkbox"]')];
@@ -396,7 +370,7 @@
     });
     updateAllOnClass();
 
-    /* ===== GWIAZDKI (14) ===== */
+    /* Gwiazdki (14) */
     const starsWrap=document.getElementById('stars');
     const STAR_KEY='stars14_state';
     function drawStars(){
@@ -423,3 +397,4 @@
   </script>
 </body>
 </html>
+
